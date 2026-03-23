@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inglenook Sidings</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- HUD Overlay -->
+    <div id="hud">
+      <div id="target-panel">
+        <div id="target-label">Target Consist (assemble on B)</div>
+        <div id="target-cars"></div>
+      </div>
+      <div id="hud-right">
+        <div id="move-counter">Moves: 0</div>
+        <div id="status-line">Loco on A</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div id="controls">
+      <div id="move-buttons">
+        <span class="control-label">Move to:</span>
+        <button class="btn-move" data-track="A">A</button>
+        <button class="btn-move" data-track="B">B</button>
+        <button class="btn-move" data-track="C">C</button>
+        <button class="btn-move" data-track="D">D</button>
+      </div>
+      <div id="action-buttons">
+        <button id="btn-couple">Couple</button>
+        <button id="btn-decouple">Decouple</button>
+      </div>
+      <button id="btn-reset">New Game</button>
+    </div>
+
+    <!-- Victory overlay -->
+    <div id="victory" class="hidden">
+      <div id="victory-text">Victory!</div>
+      <div id="victory-moves"></div>
+      <button id="btn-play-again">Play Again</button>
+    </div>
+
+    <!-- Error toast -->
+    <div id="error-toast" class="hidden"></div>
+  </div>
+
+  <!-- Three.js r152 (global build with OrbitControls) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- Game scripts in dependency order -->
+  <script src="js/config.js"></script>
+  <script src="js/tracks.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/gameState.js"></script>
+  <script src="js/hud.js"></script>
+  <script src="js/animation.js"></script>
+  <script src="js/interaction.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

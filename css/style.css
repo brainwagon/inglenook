@@ -1,0 +1,226 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  overflow: hidden;
+  background: #1a1a2e;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+#gameCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* HUD */
+#hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px 20px;
+  pointer-events: none;
+}
+
+#target-panel {
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  padding: 8px 14px;
+}
+
+#target-label {
+  color: #aaa;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+#target-cars {
+  display: flex;
+  gap: 6px;
+}
+
+.target-car {
+  width: 36px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  border: 2px solid rgba(255,255,255,0.3);
+}
+
+#hud-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+#move-counter {
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+#status-line {
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  padding: 6px 14px;
+  color: #ccc;
+  font-size: 13px;
+}
+
+/* Controls */
+#controls {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+
+#move-buttons, #action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.control-label {
+  color: #aaa;
+  font-size: 13px;
+  margin-right: 2px;
+}
+
+#controls button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s, opacity 0.2s;
+}
+
+.btn-move {
+  background: #546e7a;
+  color: #fff;
+  min-width: 38px;
+}
+.btn-move:hover { background: #78909c; }
+.btn-move:disabled {
+  background: #ffd700;
+  color: #1a1a2e;
+  cursor: default;
+  opacity: 1;
+}
+.btn-move:disabled:hover { transform: none; }
+
+#controls button:hover {
+  transform: translateY(-1px);
+}
+
+#controls button:active {
+  transform: translateY(0);
+}
+
+#btn-couple {
+  background: #4caf50;
+  color: #fff;
+}
+#btn-couple:hover { background: #45a049; }
+
+#btn-decouple {
+  background: #f44336;
+  color: #fff;
+}
+#btn-decouple:hover { background: #e53935; }
+
+#btn-reset {
+  background: #2196f3;
+  color: #fff;
+}
+#btn-reset:hover { background: #1e88e5; }
+
+/* Victory overlay */
+#victory {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 10;
+}
+
+#victory-text {
+  font-size: 64px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+  margin-bottom: 10px;
+}
+
+#victory-moves {
+  font-size: 22px;
+  color: #fff;
+  margin-bottom: 24px;
+}
+
+#btn-play-again {
+  padding: 12px 30px;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  background: #ffd700;
+  color: #1a1a2e;
+  cursor: pointer;
+}
+#btn-play-again:hover { background: #ffca28; }
+
+/* Error toast */
+#error-toast {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(244, 67, 54, 0.9);
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: opacity 0.3s;
+  z-index: 5;
+}
+
+.hidden {
+  display: none !important;
+}
