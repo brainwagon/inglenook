@@ -161,7 +161,7 @@ const Animation = (() => {
 
     // Drive off-screen to the left (well past the left edge of track A)
     const offScreenX = -30;
-    const trackZ = Tracks.definitions.A.z;
+    const trackZ = Tracks.definitions.A.throatZ;
     waypoints.push(new THREE.Vector3(offScreenX, 0, trackZ));
 
     // Build polyline path with cumulative distances
