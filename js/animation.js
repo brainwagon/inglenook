@@ -22,7 +22,10 @@ const Animation = (() => {
     // Prepend loco's actual position and append destination loco position
     // so the path goes: locoPos → throat → switches → throat → destLocoPos
     waypoints.unshift(new THREE.Vector3(locoMesh.position.x, 0, locoMesh.position.z));
-    waypoints.push(Tracks.getLocoPosition(toTrack));
+    // Stop position accounts for siding cars / buffer contact on B/C/D
+    const numCoupled = GameState.state.coupled.length;
+    const numSiding = GameState.state.sidings[toTrack].length;
+    waypoints.push(Tracks.getLocoStopPosition(toTrack, numCoupled, numSiding));
 
     // Build polyline path with cumulative distances
     const path = [{ point: waypoints[0].clone(), dist: 0 }];

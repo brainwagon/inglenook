@@ -13,6 +13,7 @@ const Entities = (() => {
     createLocomotive();
     createAllCars();
     positionAllEntities();
+    createDecorations();
   }
 
   // ── Rails ──
@@ -39,6 +40,76 @@ const Entities = (() => {
     Tracks.connectors.forEach((seg) => {
       drawRailSegment(seg.from, seg.to, railMaterial, sleeperMat);
     });
+
+    // Buffer stops at the end of sidings B, C, D
+    const bufferMat = new THREE.MeshStandardMaterial({
+      color: 0xcc2222,
+      roughness: 0.6,
+      metalness: 0.3,
+    });
+    const bufferWoodMat = new THREE.MeshStandardMaterial({
+      color: 0x5d4037,
+      roughness: 0.9,
+    });
+    ['B', 'C', 'D'].forEach((trackId) => {
+      createBufferStop(trackId, railMaterial, bufferMat, bufferWoodMat);
+    });
+  }
+
+  function createBufferStop(trackId, railMat, bufferMat, woodMat) {
+    const end = Tracks.getTrackEnd(trackId);
+    const t = Tracks.definitions[trackId];
+    // Track direction (from throat toward buffer)
+    const dirX = t.dirX;
+    const dirZ = t.dirZ;
+    // Perpendicular (to the left when facing along track direction)
+    const perpX = -dirZ;
+    const perpZ = dirX;
+    const angle = Math.atan2(dirX, dirZ);
+
+    const group = new THREE.Group();
+    group.position.copy(end);
+
+    // Cross-beam (horizontal bar across both rails)
+    const beamGeo = new THREE.BoxGeometry(0.12, 0.3, 0.8);
+    const beam = new THREE.Mesh(beamGeo, bufferMat);
+    beam.position.y = 0.25;
+    beam.rotation.y = angle;
+    beam.castShadow = true;
+    group.add(beam);
+
+    // Two buffer pads on the cross-beam (facing the approaching train)
+    for (let side = -1; side <= 1; side += 2) {
+      const padGeo = new THREE.BoxGeometry(0.15, 0.2, 0.15);
+      const pad = new THREE.Mesh(padGeo, bufferMat);
+      pad.position.set(
+        -dirX * 0.08 + perpX * side * 0.25,
+        0.25,
+        -dirZ * 0.08 + perpZ * side * 0.25
+      );
+      pad.rotation.y = angle;
+      pad.castShadow = true;
+      group.add(pad);
+    }
+
+    // Two diagonal braces from ground to cross-beam
+    for (let side = -1; side <= 1; side += 2) {
+      const braceGeo = new THREE.BoxGeometry(0.06, 0.45, 0.06);
+      const brace = new THREE.Mesh(braceGeo, woodMat);
+      brace.position.set(
+        dirX * 0.15 + perpX * side * 0.25,
+        0.18,
+        dirZ * 0.15 + perpZ * side * 0.25
+      );
+      // Tilt backward (away from approaching train)
+      const tiltAxis = new THREE.Vector3(perpX, 0, perpZ).normalize();
+      brace.rotation.y = angle;
+      brace.rotateOnWorldAxis(tiltAxis, 0.3);
+      brace.castShadow = true;
+      group.add(brace);
+    }
+
+    scene.add(group);
   }
 
   function drawRailSegment(start, end, railMaterial, sleeperMat) {
@@ -236,33 +307,142 @@ const Entities = (() => {
     return new THREE.CanvasTexture(canvas);
   }
 
+  // ── Scenery: boulders and pine trees ──
+  function createDecorations() {
+    // Seed-able pseudo-random so scenery is stable across reloads
+    let seed = 12345;
+    function rand() {
+      seed = (seed * 16807 + 0) % 2147483647;
+      return (seed - 1) / 2147483646;
+    }
+
+    // Track area roughly: x ∈ [-15, 21], z ∈ [-1, 6]
+    // Place decorations outside a padded version of that box
+    const placements = [
+      // Behind the A/B line (negative z)
+      { x: -10, z: -4 }, { x: -4, z: -5.5 }, { x: 3, z: -4.5 },
+      { x: 8, z: -3.5 }, { x: 14, z: -4 }, { x: 19, z: -3 },
+      { x: -7, z: -7 }, { x: 1, z: -8 }, { x: 10, z: -7 },
+      { x: 17, z: -6.5 }, { x: 24, z: -5 },
+      // Beyond track D / below the layout (large positive z)
+      { x: -5, z: 8 }, { x: 2, z: 9 }, { x: 8, z: 8.5 },
+      { x: 14, z: 9 }, { x: 20, z: 8 }, { x: 25, z: 7 },
+      { x: -2, z: 11 }, { x: 6, z: 12 }, { x: 16, z: 11 },
+      // Far left of track A
+      { x: -18, z: -2 }, { x: -19, z: 2 }, { x: -17, z: 5 },
+      // Far right of tracks B/C
+      { x: 23, z: -1 }, { x: 24, z: 3 }, { x: 22, z: 6 },
+    ];
+
+    placements.forEach((p) => {
+      // Add slight random jitter
+      const jx = p.x + (rand() - 0.5) * 2;
+      const jz = p.z + (rand() - 0.5) * 2;
+
+      if (rand() < 0.45) {
+        createBoulder(jx, jz, rand);
+      } else {
+        createPineTree(jx, jz, rand);
+      }
+    });
+  }
+
+  function createBoulder(x, z, rand) {
+    const size = 0.4 + rand() * 0.8;
+    const geo = new THREE.DodecahedronGeometry(size, 0);
+    const mat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color().setHSL(0.08, 0.05 + rand() * 0.1, 0.35 + rand() * 0.15),
+      roughness: 0.9,
+      flatShading: true,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, size * 0.4, z);
+    mesh.rotation.set(rand() * Math.PI, rand() * Math.PI, rand() * Math.PI);
+    // Squash slightly for a natural look
+    mesh.scale.set(1 + rand() * 0.3, 0.6 + rand() * 0.4, 1 + rand() * 0.3);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    scene.add(mesh);
+  }
+
+  function createPineTree(x, z, rand) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    group.rotation.y = rand() * Math.PI * 2;
+
+    const height = 1.8 + rand() * 2.0;
+    const trunkRadius = 0.08 + rand() * 0.04;
+
+    // Trunk
+    const trunkGeo = new THREE.CylinderGeometry(trunkRadius * 0.6, trunkRadius, height * 0.4, 6);
+    const trunkMat = new THREE.MeshStandardMaterial({
+      color: 0x5d4037,
+      roughness: 0.9,
+    });
+    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+    trunk.position.y = height * 0.2;
+    trunk.castShadow = true;
+    group.add(trunk);
+
+    // Foliage: 3 stacked cones, largest at bottom
+    const foliageMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color().setHSL(0.28 + rand() * 0.06, 0.6 + rand() * 0.2, 0.25 + rand() * 0.1),
+      roughness: 0.8,
+      flatShading: true,
+    });
+
+    const tiers = 3;
+    for (let i = 0; i < tiers; i++) {
+      const t = i / tiers;
+      const coneRadius = (0.5 + rand() * 0.3) * (1 - t * 0.35);
+      const coneHeight = height * (0.3 + rand() * 0.1);
+      const coneGeo = new THREE.ConeGeometry(coneRadius, coneHeight, 7);
+      const cone = new THREE.Mesh(coneGeo, foliageMat);
+      cone.position.y = height * (0.35 + t * 0.22);
+      cone.castShadow = true;
+      cone.receiveShadow = true;
+      group.add(cone);
+    }
+
+    scene.add(group);
+  }
+
   // ── Positioning ──
   function positionAllEntities() {
     const locoTrack = GameState.state.locoTrack;
     const coupled = GameState.state.coupled;
 
-    // Position locomotive
-    const locoPos = Tracks.getLocoPosition(locoTrack);
+    // Position locomotive — on B/C/D, stop so consist contacts siding cars / buffer
+    const numSiding = GameState.state.sidings[locoTrack].length;
+    const locoPos = Tracks.getLocoStopPosition(locoTrack, coupled.length, numSiding);
     locoMesh.position.x = locoPos.x;
     locoMesh.position.z = locoPos.z;
     locoMesh.rotation.y = Tracks.getTrackRotation(locoTrack);
 
-    // Position coupled cars (right of loco)
+    // Position coupled cars relative to the loco stop position
+    const fillDir = locoTrack === 'A'
+      ? new THREE.Vector3(1, 0, 0)
+      : (() => { const t = Tracks.definitions[locoTrack]; return new THREE.Vector3(t.dirX, 0, t.dirZ); })();
     coupled.forEach((carId, idx) => {
-      const pos = Tracks.getCoupledCarPosition(locoTrack, idx);
+      const offset = (idx + 1) * CONFIG.slotSpacing;
       const mesh = carMeshes[carId];
-      mesh.position.x = pos.x;
-      mesh.position.z = pos.z;
+      mesh.position.x = locoPos.x + fillDir.x * offset;
+      mesh.position.z = locoPos.z + fillDir.z * offset;
       mesh.rotation.y = Tracks.getTrackRotation(locoTrack);
     });
 
     // Position siding cars
-    // On the loco's track, siding cars start after loco + coupled cars
+    // B/C/D: pack against buffer stops. A: fill from the far (left) end.
     ['A', 'B', 'C', 'D'].forEach((trackId) => {
       const cars = GameState.state.sidings[trackId];
-      const extraOffset = (trackId === locoTrack) ? coupled.length + 1 : 0;
       cars.forEach((carId, slotIndex) => {
-        const pos = Tracks.getCarPosition(trackId, slotIndex + extraOffset);
+        let pos;
+        if (trackId === 'A') {
+          const extraOffset = (trackId === locoTrack) ? coupled.length + 1 : 0;
+          pos = Tracks.getCarPosition(trackId, slotIndex + extraOffset);
+        } else {
+          pos = Tracks.getBufferPackedPosition(trackId, slotIndex, cars.length);
+        }
         const mesh = carMeshes[carId];
         mesh.position.x = pos.x;
         mesh.position.z = pos.z;

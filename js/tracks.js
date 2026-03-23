@@ -162,6 +162,58 @@ const Tracks = (() => {
     );
   }
 
+  // Position a siding car packed against the buffer stop (for B/C/D).
+  // carIndex 0 = nearest throat, totalCars-1 = touching buffer.
+  function getBufferPackedPosition(trackId, carIndex, totalCars) {
+    const end = getTrackEnd(trackId);
+    const dir = getFillDir(trackId);
+    // Last car centered 0.8 units back from buffer; each prior car another slotSpacing back
+    const distFromBuffer = 0.8 + (totalCars - 1 - carIndex) * CONFIG.slotSpacing;
+    return new THREE.Vector3(
+      end.x - dir.x * distFromBuffer,
+      0,
+      end.z - dir.z * distFromBuffer
+    );
+  }
+
+  // Where the loco should stop on a siding so the rear of the consist
+  // contacts the existing siding cars (or the buffer if the siding is empty).
+  // On track A (headshunt) the loco always goes to its default position.
+  function getLocoStopPosition(trackId, numCoupled, numSidingCars) {
+    if (trackId === 'A') return getLocoPosition(trackId);
+
+    const t = definitions[trackId];
+    const dir = getFillDir(trackId);
+    const throat = getTrackThroat(trackId);
+
+    // Contact point: distance from throat along the fill direction
+    let contactDist;
+    if (numSidingCars === 0) {
+      // Rear entity edge should touch the buffer
+      contactDist = t.length;
+    } else {
+      // Rear entity edge should touch the near edge of the first siding car
+      const firstCarCenter = t.length - 0.8 - (numSidingCars - 1) * CONFIG.slotSpacing;
+      contactDist = firstCarCenter - CONFIG.carSize.x / 2;
+    }
+
+    // Distance from loco center to rear edge of the last entity in the consist
+    const rearExtent = numCoupled > 0
+      ? numCoupled * CONFIG.slotSpacing + CONFIG.carSize.x / 2
+      : CONFIG.locoSize.x / 2;
+
+    // Loco center distance from throat (clamped so loco stays past the throat).
+    // Offset by the inter-car gap so the consist doesn't quite touch.
+    const carGap = CONFIG.slotSpacing - CONFIG.carSize.x;
+    const locoDist = Math.max(1.2, contactDist - rearExtent - carGap);
+
+    return new THREE.Vector3(
+      throat.x + dir.x * locoDist,
+      0,
+      throat.z + dir.z * locoDist
+    );
+  }
+
   // Y-rotation so cars/loco face along the fill direction
   function getTrackRotation(trackId) {
     const dir = getFillDir(trackId);
@@ -201,6 +253,8 @@ const Tracks = (() => {
     getTrackEnd,
     getLocoPosition,
     getCarPosition,
+    getBufferPackedPosition,
+    getLocoStopPosition,
     getCoupledCarPosition,
     getTrackRotation,
     getRouteWaypoints,
