@@ -19,7 +19,7 @@ const Entities = (() => {
     createWaterTower(-12.0, -2.8);
 
     // Wooden sign for Siding A (placed on the grass near the track)
-    createWoodenSign(-9.5, -2.5, 'Siding A');
+    createWoodenSign(-7.9, -2.5, 'Siding A');
 
     createDecorations();
   }
