@@ -2,6 +2,7 @@
 
 const HUD = (() => {
   let targetCarsEl, moveCounterEl, statusLineEl, victoryEl, victoryMovesEl, errorToastEl;
+  let settingsMenuEl, checkSignsEl;
   let errorTimeout = null;
 
   function init() {
@@ -11,9 +12,24 @@ const HUD = (() => {
     victoryEl = document.getElementById('victory');
     victoryMovesEl = document.getElementById('victory-moves');
     errorToastEl = document.getElementById('error-toast');
+    settingsMenuEl = document.getElementById('settings-menu');
+    checkSignsEl = document.getElementById('check-signs');
 
     document.getElementById('btn-play-again').addEventListener('click', () => {
       resetGame();
+    });
+
+    // Settings logic
+    document.getElementById('btn-settings').addEventListener('click', () => {
+      settingsMenuEl.classList.toggle('hidden');
+    });
+
+    document.getElementById('btn-close-settings').addEventListener('click', () => {
+      settingsMenuEl.classList.add('hidden');
+    });
+
+    checkSignsEl.addEventListener('change', (e) => {
+      Entities.setSignsVisible(e.target.checked);
     });
 
     renderTarget();

@@ -4,6 +4,7 @@ const Entities = (() => {
   let locoMesh = null;
   const carMeshes = {}; // keyed by car ID (1-8)
   const clickZones = []; // invisible planes for raycasting
+  const signs = []; // track wooden signs for visibility toggling
   let scene = null;
 
   function init(sceneRef) {
@@ -44,12 +45,12 @@ const Entities = (() => {
     // Draw the four parallel sidings
     ['A', 'B', 'C', 'D'].forEach((trackId) => {
       const start = Tracks.getTrackStart(trackId);
-      const end = Tracks.getTrackEnd(trackId);
-      drawRailSegment(start, end, railMaterial, sleeperMat);
-      // Skip sprite label for A (using wooden sign instead)
-      if (trackId !== 'A') {
-        createTrackLabel(trackId, end);
+      let end = Tracks.getTrackEnd(trackId);
+      if (trackId === 'A') {
+        // Extend headshunt rails through the tunnel (out to x = -30)
+        end = end.clone().setX(-30);
       }
+      drawRailSegment(start, end, railMaterial, sleeperMat);
     });
 
     // Draw the diagonal connector segments (switch throat)
@@ -149,7 +150,7 @@ const Entities = (() => {
     }
 
     // Sleepers (cross-ties)
-    const sleeperCount = Math.max(1, Math.floor(length / 1.2));
+    const sleeperCount = Math.max(1, Math.floor(length / 0.4));
     for (let i = 0; i < sleeperCount; i++) {
       const t = (i + 0.5) / sleeperCount;
       const pos = start.clone().lerp(end, t);
@@ -157,30 +158,10 @@ const Entities = (() => {
       const sleeper = new THREE.Mesh(sleeperGeo, sleeperMat);
       sleeper.position.copy(pos);
       sleeper.position.y = 0.02;
-      sleeper.rotation.y = angle;
+      sleeper.rotation.y = angle + Math.PI / 2;
       sleeper.receiveShadow = true;
       scene.add(sleeper);
     }
-  }
-
-  function createTrackLabel(trackId, position) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 64;
-    canvas.height = 64;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 48px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(trackId, 32, 32);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    const spriteMat = new THREE.SpriteMaterial({ map: texture });
-    const sprite = new THREE.Sprite(spriteMat);
-    sprite.position.copy(position);
-    sprite.position.y = 1.5;
-    sprite.scale.set(1.5, 1.5, 1);
-    scene.add(sprite);
   }
 
   // ── Click Zones (invisible planes over each track for raycasting) ──
@@ -225,9 +206,15 @@ const Entities = (() => {
     locoMesh = new THREE.Mesh(geo, mat);
     locoMesh.castShadow = true;
     locoMesh.receiveShadow = true;
-    locoMesh.position.y = CONFIG.locoSize.y / 2 + 0.08;
+    // Body bottom at 0.38, center at height/2 + 0.38
+    locoMesh.position.y = CONFIG.locoSize.y / 2 + 0.38;
     locoMesh.userData.isLoco = true;
     scene.add(locoMesh);
+
+    // Add trucks to locomotive
+    const lTruckDist = 0.6;
+    locoMesh.add(createTruck(-lTruckDist, CONFIG.locoSize.y));
+    locoMesh.add(createTruck(lTruckDist, CONFIG.locoSize.y));
 
     // Cab bump on top
     const cabGeo = new THREE.BoxGeometry(0.6, 0.4, CONFIG.locoSize.z * 0.8);
@@ -290,10 +277,59 @@ const Entities = (() => {
     const mesh = new THREE.Mesh(geo, materials);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    mesh.position.y = CONFIG.carSize.y / 2 + 0.08;
+    // Body bottom at 0.38, center at height/2 + 0.38
+    mesh.position.y = CONFIG.carSize.y / 2 + 0.38;
     mesh.userData.carId = id;
     mesh.userData.isCar = true;
+
+    // Add two trucks (bogies), each with 4 wheels
+    const truckDist = 0.5; // Offset from center
+    mesh.add(createTruck(-truckDist, CONFIG.carSize.y));
+    mesh.add(createTruck(truckDist, CONFIG.carSize.y));
+
     return mesh;
+  }
+
+  function createTruck(xOffset, parentHeight) {
+    const truckGroup = new THREE.Group();
+    // Position at the bottom of the parent mesh (which is at world 0.38)
+    truckGroup.position.set(xOffset, -parentHeight / 2, 0);
+
+    const metalMat = new THREE.MeshStandardMaterial({
+      color: 0x333333,
+      metalness: 0.8,
+      roughness: 0.3,
+    });
+
+    // World coords: Rail top 0.08, Wheel center 0.23, Frame top 0.38
+    // Local coords (relative to group at 0.38):
+    const wheelY = -0.15; 
+    const frameY = -0.075;
+
+    // Truck frame
+    const frameGeo = new THREE.BoxGeometry(0.6, 0.15, 0.7);
+    const frame = new THREE.Mesh(frameGeo, metalMat);
+    frame.position.y = frameY; 
+    frame.castShadow = true;
+    truckGroup.add(frame);
+
+    // 4 Wheels (2 axles)
+    const wheelRadius = 0.15;
+    const wheelGeo = new THREE.CylinderGeometry(wheelRadius, wheelRadius, 0.1, 12);
+    const axleXOffsets = [-0.2, 0.2];
+    const wheelZOffsets = [-0.3, 0.3];
+
+    axleXOffsets.forEach((axleX) => {
+      wheelZOffsets.forEach((wheelZ) => {
+        const wheel = new THREE.Mesh(wheelGeo, metalMat);
+        wheel.rotation.x = Math.PI / 2;
+        wheel.position.set(axleX, wheelY, wheelZ);
+        wheel.castShadow = true;
+        truckGroup.add(wheel);
+      });
+    });
+
+    return truckGroup;
   }
 
   function createNumberTexture(id, bgColor) {
@@ -580,6 +616,13 @@ const Entities = (() => {
     group.add(board);
 
     scene.add(group);
+    signs.push(group);
+  }
+
+  function setSignsVisible(visible) {
+    signs.forEach((s) => {
+      s.visible = visible;
+    });
   }
 
   // ── Scenery: boulders and pine trees ──
@@ -625,7 +668,9 @@ const Entities = (() => {
       if (rand() < 0.35) { // Adjusted to keep tree density higher
         createBoulder(jx, jz, rand, jy);
       } else {
-        createPineTree(jx, jz, rand, jy);
+        // Special case: shrink the largest tree near the center (located at x=2, z=9)
+        const scale = (p.x === 2 && p.z === 9) ? 0.5 : 1.0;
+        createPineTree(jx, jz, rand, jy, scale);
       }
     });
   }
@@ -648,14 +693,14 @@ const Entities = (() => {
     scene.add(mesh);
   }
 
-  function createPineTree(x, z, rand, yOffset = 0) {
+  function createPineTree(x, z, rand, yOffset = 0, scale = 1.0) {
     const group = new THREE.Group();
     group.position.set(x, yOffset, z);
     group.rotation.y = rand() * Math.PI * 2;
 
-    const height = 1.8 + rand() * 9.6; // From 1.8 up to ~11.4 (3x current max)
-    const widthScale = 0.5 + (height / 11.4) * 0.5; // Wider base for taller trees
-    const trunkRadius = (0.08 + rand() * 0.04) * widthScale * (height / 3.8);
+    const height = (1.8 + rand() * 9.6) * scale; // From 1.8 up to ~11.4 (scaled)
+    const widthScale = (0.5 + (height / (11.4 * scale)) * 0.5) * scale; // Scale width too
+    const trunkRadius = (0.08 + rand() * 0.04) * widthScale * (height / (3.8 * scale));
 
     // Trunk
     const trunkGeo = new THREE.CylinderGeometry(trunkRadius * 0.6, trunkRadius, height * 0.4, 6);
@@ -678,7 +723,7 @@ const Entities = (() => {
     const tiers = 3;
     for (let i = 0; i < tiers; i++) {
       const t = i / tiers;
-      const coneRadius = (0.5 + rand() * 0.3) * widthScale * (height / 3.8) * (1 - t * 0.35);
+      const coneRadius = (0.5 + rand() * 0.3) * widthScale * (height / (3.8 * scale)) * (1 - t * 0.35);
       const coneHeight = height * (0.3 + rand() * 0.1);
       const coneGeo = new THREE.ConeGeometry(coneRadius, coneHeight, 7);
       const cone = new THREE.Mesh(coneGeo, foliageMat);
@@ -753,5 +798,6 @@ const Entities = (() => {
     getCarMesh,
     getAllCarMeshes,
     getClickZones,
+    setSignsVisible,
   };
 })();
