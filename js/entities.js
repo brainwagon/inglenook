@@ -27,6 +27,10 @@ const Entities = (() => {
     createWoodenSign(22.0, 2.0, 'Siding C');
     createWoodenSign(21.5, 5.5, 'Siding D', -Math.PI / 12);
 
+    // Telephone line on the far side of track A/B (negative Z)
+    // Spacing at 12 units, restricted to ground plane boundaries (X: -30 to 30)
+    createTelephoneLine(new THREE.Vector3(-30, 0, -10.5), new THREE.Vector3(30, 0, -10.5), 6);
+
     createDecorations();
   }
 
@@ -784,6 +788,123 @@ const Entities = (() => {
         mesh.rotation.y = Tracks.getTrackRotation(trackId);
       });
     });
+  }
+
+  function createTelephoneLine(startPoint, endPoint, poleCount = 6) {
+    const group = new THREE.Group();
+    const poleMat = new THREE.MeshStandardMaterial({
+      color: 0x4d3027,
+      roughness: 0.9,
+    });
+    const wireMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+
+    const poles = [];
+    for (let i = 0; i < poleCount; i++) {
+      const t = i / (poleCount - 1);
+      const pos = startPoint.clone().lerp(endPoint, t);
+      
+      const poleGroup = new THREE.Group();
+      poleGroup.position.set(pos.x, 0, pos.z);
+      poleGroup.rotation.y = Math.PI / 2; // Rotate pole 90 degrees
+      
+      // Main pole
+      const poleGeo = new THREE.CylinderGeometry(0.12, 0.16, 5.5, 8);
+      const pole = new THREE.Mesh(poleGeo, poleMat);
+      pole.position.y = 2.75;
+      pole.castShadow = true;
+      pole.receiveShadow = true;
+      poleGroup.add(pole);
+
+      // Cross-arm
+      const armGeo = new THREE.BoxGeometry(1.4, 0.15, 0.15);
+      const arm = new THREE.Mesh(armGeo, poleMat);
+      arm.position.y = 4.8;
+      arm.castShadow = true;
+      poleGroup.add(arm);
+
+      // Insulators
+      for (let side of [-1, 1]) {
+        for (let inner of [-0.4, 0.6]) {
+          const insGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.12, 6);
+          const ins = new THREE.Mesh(insGeo, new THREE.MeshBasicMaterial({ color: 0x88ccff, transparent: true, opacity: 0.8 }));
+          ins.position.set(side * inner, 4.9, 0);
+          poleGroup.add(ins);
+        }
+      }
+
+      group.add(poleGroup);
+      poles.push(pos.clone().setY(4.9)); // Wire attachment height
+    }
+
+    // Four curved wires (catenaries) connecting each pair of poles
+    for (let i = 0; i < poleCount - 1; i++) {
+      const p1 = poles[i];
+      const p2 = poles[i + 1];
+
+      for (let slot of [-0.6, -0.4, 0.4, 0.6]) {
+        const wirePoints = [];
+        const segments = 12;
+        const sag = 0.3;
+
+        for (let j = 0; j <= segments; j++) {
+          const t = j / segments;
+          const pos = p1.clone().lerp(p2, t);
+          // Offset along Z axis now that pole is rotated 90 degrees
+          pos.z += slot; 
+          // Add sag (catenary curve approximation)
+          pos.y -= Math.sin(t * Math.PI) * sag;
+          wirePoints.push(pos);
+        }
+
+        const curve = new THREE.CatmullRomCurve3(wirePoints);
+        const wireGeo = new THREE.TubeGeometry(curve, segments, 0.015, 6, false);
+        const wire = new THREE.Mesh(wireGeo, wireMat);
+        group.add(wire);
+      }
+    }
+
+    // Add 5 small birds at random locations on the wires
+    for (let i = 0; i < 5; i++) {
+      const segIdx = Math.floor(Math.random() * (poleCount - 1));
+      const p1 = poles[segIdx];
+      const p2 = poles[segIdx + 1];
+      const slot = [-0.6, -0.4, 0.4, 0.6][Math.floor(Math.random() * 4)];
+      const t = 0.1 + Math.random() * 0.8;
+      const sag = 0.3;
+
+      const birdPos = p1.clone().lerp(p2, t);
+      birdPos.z += slot;
+      birdPos.y -= Math.sin(t * Math.PI) * sag;
+      birdPos.y += 0.12; // Sit on top of the wire
+
+      createBirdSprite(birdPos.x, birdPos.y, birdPos.z, group);
+    }
+
+    scene.add(group);
+  }
+
+  function createBirdSprite(x, y, z, parent) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+
+    // Simple bird silhouette (black V shape)
+    ctx.fillStyle = '#111111';
+    ctx.beginPath();
+    ctx.moveTo(32, 48); // Bottom/Tail
+    ctx.lineTo(16, 24); // Left wing
+    ctx.lineTo(32, 32); // Body center
+    ctx.lineTo(48, 24); // Right wing
+    ctx.closePath();
+    ctx.fill();
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMat = new THREE.SpriteMaterial({ map: texture });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.position.set(x, y, z);
+    sprite.scale.set(0.6, 0.6, 1); // Approx 0.6m high
+    parent.add(sprite);
   }
 
   function getLocoMesh() { return locoMesh; }
