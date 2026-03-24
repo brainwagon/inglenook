@@ -26,6 +26,7 @@ const Interaction = (() => {
     // Action buttons
     document.getElementById('btn-couple').addEventListener('click', handleCouple);
     document.getElementById('btn-decouple').addEventListener('click', handleDecouple);
+    document.getElementById('btn-retry').addEventListener('click', () => HUD.retryGame());
     document.getElementById('btn-reset').addEventListener('click', () => HUD.resetGame());
   }
 

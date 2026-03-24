@@ -301,6 +301,12 @@ body {
 }
 #btn-decouple:hover { background: #e53935; }
 
+#btn-retry {
+  background: #ff9800;
+  color: #fff;
+}
+#btn-retry:hover { background: #f57c00; }
+
 #btn-reset {
   background: #2196f3;
   color: #fff;

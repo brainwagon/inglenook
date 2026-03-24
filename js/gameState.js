@@ -28,6 +28,18 @@ const GameState = (() => {
     state.target = generateTarget(allCars);
   }
 
+  function retry() {
+    state.sidings.A = [];
+    state.sidings.B = [1, 2, 3, 4, 5];
+    state.sidings.C = [6, 7, 8];
+    state.sidings.D = [];
+    state.locoTrack = 'A';
+    state.coupled = [];
+    state.moves = 0;
+    state.won = false;
+    // target is preserved
+  }
+
   function generateTarget(allCars) {
     const copy = [...allCars];
     shuffle(copy);
@@ -119,6 +131,7 @@ const GameState = (() => {
   return {
     state,
     init,
+    retry,
     coupleOne,
     decoupleAll,
     canMove,

@@ -120,6 +120,15 @@ const HUD = (() => {
     }, 1500);
   }
 
+  function retryGame() {
+    hideVictory();
+    GameState.retry();
+    Entities.positionAllEntities();
+    updateMoves();
+    updateStatus();
+    if (Interaction.updateMoveButtons) Interaction.updateMoveButtons();
+  }
+
   function resetGame() {
     hideVictory();
     GameState.init();
@@ -130,5 +139,5 @@ const HUD = (() => {
     if (Interaction.updateMoveButtons) Interaction.updateMoveButtons();
   }
 
-  return { init, renderTarget, updateMoves, updateStatus, showVictory, hideVictory, showError, resetGame };
+  return { init, renderTarget, updateMoves, updateStatus, showVictory, hideVictory, showError, retryGame, resetGame };
 })();
