@@ -19,7 +19,7 @@ const Entities = (() => {
     createWaterTower(-12.0, -2.8);
 
     // Wooden sign for Siding A (placed on the grass near the track)
-    createWoodenSign(-6.0, -1.8, 'Siding A');
+    createWoodenSign(-9.5, -2.5, 'Siding A');
 
     createDecorations();
   }
@@ -534,39 +534,41 @@ const Entities = (() => {
       roughness: 0.9,
     });
 
-    // Post
-    const postGeo = new THREE.BoxGeometry(0.1, 1.4, 0.1);
-    const post = new THREE.Mesh(postGeo, woodMat);
-    post.position.y = 0.7;
-    post.castShadow = true;
-    post.receiveShadow = true;
-    group.add(post);
+    // Two posts for a larger sign, placed behind the board
+    const postGeo = new THREE.BoxGeometry(0.15, 2.2, 0.15);
+    for (let side of [-1, 1]) {
+      const post = new THREE.Mesh(postGeo, woodMat);
+      post.position.set(side * 1.2, 1.1, -0.15);
+      post.castShadow = true;
+      post.receiveShadow = true;
+      group.add(post);
+    }
 
-    // Sign board
-    const boardGeo = new THREE.BoxGeometry(1.6, 0.6, 0.08);
+    // Sign board (doubled size: 3.2 x 1.2)
+    const boardGeo = new THREE.BoxGeometry(3.2, 1.2, 0.15);
 
     // Canvas for text
     const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 256;
+    canvas.width = 1024;
+    canvas.height = 512;
     const ctx = canvas.getContext('2d');
 
     // Wood-like background
     ctx.fillStyle = '#5d4037';
-    ctx.fillRect(0, 0, 512, 256);
+    ctx.fillRect(0, 0, 1024, 512);
 
-    // Text (use a serif font for old-timey look)
+    // Text (serif for old-timey look)
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 80px serif';
+    ctx.font = 'bold 160px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, 256, 128);
+    ctx.fillText(text, 512, 256);
 
     const texture = new THREE.CanvasTexture(canvas);
     const boardMat = new THREE.MeshStandardMaterial({ map: texture });
 
     const board = new THREE.Mesh(boardGeo, boardMat);
-    board.position.y = 1.1;
+    board.position.y = 1.5;
     board.castShadow = true;
     board.receiveShadow = true;
     group.add(board);
