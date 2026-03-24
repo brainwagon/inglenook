@@ -53,16 +53,53 @@ const HUD = (() => {
     moveCounterEl.textContent = `${LANG.moves}: ${GameState.state.moves}`;
   }
 
+  function makeChip(carId) {
+    const chip = document.createElement('div');
+    chip.className = 'status-chip';
+    const color = new THREE.Color(CONFIG.carColors[carId - 1]);
+    chip.style.backgroundColor = `#${color.getHexString()}`;
+    chip.textContent = carId;
+    return chip;
+  }
+
+  function makeStatusRow(label, carIds) {
+    const row = document.createElement('div');
+    row.className = 'status-row';
+
+    const lbl = document.createElement('span');
+    lbl.className = 'status-label';
+    lbl.textContent = label;
+    row.appendChild(lbl);
+
+    if (carIds.length === 0) {
+      const empty = document.createElement('span');
+      empty.className = 'status-empty';
+      empty.textContent = '—';
+      row.appendChild(empty);
+    } else {
+      const chips = document.createElement('div');
+      chips.className = 'status-chips';
+      carIds.forEach(id => chips.appendChild(makeChip(id)));
+      row.appendChild(chips);
+    }
+    return row;
+  }
+
   function updateStatus() {
     const st = GameState.state;
-    const locoInfo = `Loco on ${st.locoTrack}`;
-    const coupledInfo = st.coupled.length > 0
-      ? ` | Coupled: ${st.coupled.join(', ')}`
-      : '';
-    const sidingInfo = st.sidings[st.locoTrack].length > 0
-      ? ` | Cars here: ${st.sidings[st.locoTrack].join(', ')}`
-      : '';
-    statusLineEl.textContent = locoInfo + coupledInfo + sidingInfo;
+    statusLineEl.innerHTML = '';
+
+    // Loco track header
+    const header = document.createElement('div');
+    header.className = 'status-row';
+    const hlbl = document.createElement('span');
+    hlbl.className = 'status-label';
+    hlbl.textContent = `Loco on ${st.locoTrack}`;
+    header.appendChild(hlbl);
+    statusLineEl.appendChild(header);
+
+    statusLineEl.appendChild(makeStatusRow('Coupled:', st.coupled));
+    statusLineEl.appendChild(makeStatusRow('On siding:', st.sidings[st.locoTrack]));
   }
 
   function showVictory() {

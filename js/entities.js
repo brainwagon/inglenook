@@ -754,21 +754,49 @@ const Entities = (() => {
     // Position locomotive — on B/C/D, stop so consist contacts siding cars / buffer
     const numSiding = GameState.state.sidings[locoTrack].length;
     const locoPos = Tracks.getLocoStopPosition(locoTrack, coupled.length, numSiding);
-    locoMesh.position.x = locoPos.x;
-    locoMesh.position.z = locoPos.z;
-    locoMesh.rotation.y = Tracks.getTrackRotation(locoTrack);
 
-    // Position coupled cars relative to the loco stop position
-    const fillDir = locoTrack === 'A'
-      ? new THREE.Vector3(1, 0, 0)
-      : (() => { const t = Tracks.definitions[locoTrack]; return new THREE.Vector3(t.dirX, 0, t.dirZ); })();
-    coupled.forEach((carId, idx) => {
-      const offset = (idx + 1) * CONFIG.slotSpacing;
-      const mesh = carMeshes[carId];
-      mesh.position.x = locoPos.x + fillDir.x * offset;
-      mesh.position.z = locoPos.z + fillDir.z * offset;
-      mesh.rotation.y = Tracks.getTrackRotation(locoTrack);
-    });
+    // Compute how far from the throat the loco is (negative = before throat)
+    let locoDist = 0;
+    if (locoTrack !== 'A') {
+      const throat = Tracks.getTrackStart(locoTrack);
+      const def = Tracks.definitions[locoTrack];
+      const fillDir = new THREE.Vector3(def.dirX, 0, def.dirZ);
+      locoDist = locoPos.clone().sub(throat).dot(fillDir);
+    }
+
+    if (locoTrack !== 'A' && locoDist < 0) {
+      // Consist overflows past the throat — position on the physical path
+      // (switch lead / diagonal) using approach geometry
+      const locoAp = Tracks.getApproachPosition(locoTrack, locoDist);
+      locoMesh.position.x = locoAp.pos.x;
+      locoMesh.position.z = locoAp.pos.z;
+      locoMesh.rotation.y = locoAp.rotation;
+
+      coupled.forEach((carId, idx) => {
+        const carDist = locoDist + (idx + 1) * CONFIG.slotSpacing;
+        const carAp = Tracks.getApproachPosition(locoTrack, carDist);
+        const mesh = carMeshes[carId];
+        mesh.position.x = carAp.pos.x;
+        mesh.position.z = carAp.pos.z;
+        mesh.rotation.y = carAp.rotation;
+      });
+    } else {
+      // Normal positioning — loco and coupled cars on the siding
+      locoMesh.position.x = locoPos.x;
+      locoMesh.position.z = locoPos.z;
+      locoMesh.rotation.y = Tracks.getTrackRotation(locoTrack);
+
+      const fillDir = locoTrack === 'A'
+        ? new THREE.Vector3(1, 0, 0)
+        : (() => { const t = Tracks.definitions[locoTrack]; return new THREE.Vector3(t.dirX, 0, t.dirZ); })();
+      coupled.forEach((carId, idx) => {
+        const offset = (idx + 1) * CONFIG.slotSpacing;
+        const mesh = carMeshes[carId];
+        mesh.position.x = locoPos.x + fillDir.x * offset;
+        mesh.position.z = locoPos.z + fillDir.z * offset;
+        mesh.rotation.y = Tracks.getTrackRotation(locoTrack);
+      });
+    }
 
     // Position siding cars
     // B/C/D: pack against buffer stops. A: fill from the far (left) end.

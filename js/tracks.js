@@ -202,10 +202,10 @@ const Tracks = (() => {
       ? numCoupled * CONFIG.slotSpacing + CONFIG.carSize.x / 2
       : CONFIG.locoSize.x / 2;
 
-    // Loco center distance from throat (clamped so loco stays past the throat).
-    // Offset by the inter-car gap so the consist doesn't quite touch.
+    // Loco center distance from throat — may be negative when the consist
+    // is long, meaning the loco sits back on the switch lead.  This is legal.
     const carGap = CONFIG.slotSpacing - CONFIG.carSize.x;
-    const locoDist = Math.max(1.2, contactDist - rearExtent - carGap);
+    const locoDist = contactDist - rearExtent - carGap;
 
     return new THREE.Vector3(
       throat.x + dir.x * locoDist,
@@ -244,6 +244,49 @@ const Tracks = (() => {
     }
   }
 
+  // Get position and rotation on the physical path at a given distance from
+  // the destination throat.  Positive = into the siding (along fill direction).
+  // Negative = back along the approach (switch lead, diagonal, etc.).
+  function getApproachPosition(trackId, distFromThroat) {
+    const t = definitions[trackId];
+    const throat = getTrackThroat(trackId);
+    const fillDirVec = getFillDir(trackId);
+
+    if (distFromThroat >= 0) {
+      return {
+        pos: new THREE.Vector3(
+          throat.x + fillDirVec.x * distFromThroat,
+          0,
+          throat.z + fillDirVec.z * distFromThroat
+        ),
+        rotation: getTrackRotation(trackId),
+      };
+    }
+
+    // Walk backward from the throat along the route waypoints
+    const route = getRouteWaypoints('A', trackId); // ends at dest throat
+    const points = route.slice().reverse();         // [dest throat, (SP2,) SP1, A throat]
+
+    let remaining = -distFromThroat;
+    let pos = points[0].clone();
+    let forwardDir = fillDirVec.clone();
+
+    for (let i = 1; i < points.length && remaining > 0; i++) {
+      const segVec = points[i].clone().sub(points[i - 1]);
+      const segLen = segVec.length();
+      const segDir = segVec.clone().normalize();
+      const travel = Math.min(remaining, segLen);
+      pos = points[i - 1].clone().add(segDir.clone().multiplyScalar(travel));
+      forwardDir = segDir.clone().negate(); // direction toward throat
+      remaining -= travel;
+    }
+
+    return {
+      pos,
+      rotation: Math.atan2(-forwardDir.z, forwardDir.x),
+    };
+  }
+
   return {
     SP1,
     SP2,
@@ -255,6 +298,7 @@ const Tracks = (() => {
     getCarPosition,
     getBufferPackedPosition,
     getLocoStopPosition,
+    getApproachPosition,
     getCoupledCarPosition,
     getTrackRotation,
     getRouteWaypoints,

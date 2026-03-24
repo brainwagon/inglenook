@@ -23,13 +23,44 @@ const Animation = (() => {
     // Get routing waypoints (throat → switch points → throat)
     const waypoints = Tracks.getRouteWaypoints(fromTrack, toTrack);
 
-    // Prepend loco's actual position and append destination loco position
-    // so the path goes: locoPos → throat → switches → throat → destLocoPos
+    // Prepend loco's actual position
     waypoints.unshift(new THREE.Vector3(locoMesh.position.x, 0, locoMesh.position.z));
-    // Stop position accounts for siding cars / buffer contact on B/C/D
+
+    // Remove leading waypoints that the loco has already passed (e.g. when
+    // sitting on the diagonal before the fromTrack throat).  Without this,
+    // the path would backtrack toward the throat before heading to the dest.
+    // Save them — reversed, they form the trail path into the siding for
+    // positioning coupled cars that are still inside the siding.
+    const removedLeading = [];
+    while (waypoints.length >= 3) {
+      const seg1 = waypoints[1].clone().sub(waypoints[0]);
+      const seg2 = waypoints[2].clone().sub(waypoints[1]);
+      if (seg1.dot(seg2) < 0) {
+        removedLeading.push(waypoints.splice(1, 1)[0]);
+      } else {
+        break;
+      }
+    }
+
+    // Determine where the loco should stop
     const numCoupled = GameState.state.coupled.length;
     const numSiding = GameState.state.sidings[toTrack].length;
-    waypoints.push(Tracks.getLocoStopPosition(toTrack, numCoupled, numSiding));
+    const stopPos = Tracks.getLocoStopPosition(toTrack, numCoupled, numSiding);
+
+    // Check if the stop position is inside the siding (past the throat) or
+    // before the throat (loco sits on the switch lead / diagonal).
+    const destThroat = waypoints[waypoints.length - 1];
+    const def = Tracks.definitions[toTrack];
+    const fillDir = new THREE.Vector3(def.dirX, 0, def.dirZ);
+    const throatToStop = stopPos.clone().sub(destThroat);
+    const stopDepth = throatToStop.dot(fillDir); // positive = inside siding
+
+    if (stopDepth >= 0) {
+      // Normal case: loco parks inside the siding — append stop position
+      waypoints.push(stopPos);
+    }
+    // Otherwise: loco stops before the throat. Don't append — we'll shorten
+    // the animation distance so the loco stops naturally on the physical path.
 
     // Build polyline path with cumulative distances
     const path = [{ point: waypoints[0].clone(), dist: 0 }];
@@ -39,20 +70,61 @@ const Animation = (() => {
       path.push({ point: waypoints[i].clone(), dist: totalDist });
     }
 
+    // If loco stops before the throat, shorten the travel distance so it
+    // halts at the correct point on the actual track path (no backtracking).
+    if (stopDepth < 0) {
+      totalDist = Math.max(0, totalDist + stopDepth); // stopDepth is negative
+    }
+
     // Overall direction: is loco moving rightward or leftward?
-    const movingRight = waypoints[waypoints.length - 1].x > waypoints[0].x;
+    // Use the stop position for direction, not the last waypoint (which may be
+    // the throat when the loco stops before it).
+    const effectiveEnd = (stopDepth < 0)
+      ? getPointOnPath(path, totalDist).pos
+      : waypoints[waypoints.length - 1];
+    const movingRight = effectiveEnd.x > waypoints[0].x;
 
     // Extend path beyond both ends so trailing cars always have valid positions
     const maxTrail = allMeshes.length * CONFIG.slotSpacing + 2;
+    const pathEndDist = path[path.length - 1].dist; // full path distance (before shortening)
 
-    const firstDir = waypoints[1].clone().sub(waypoints[0]).normalize();
-    const extBefore = waypoints[0].clone().sub(firstDir.clone().multiplyScalar(maxTrail));
-    path.unshift({ point: extBefore, dist: -maxTrail });
+    if (removedLeading.length > 0) {
+      // Build backward extension along the physical track: loco → SP2 → throat → siding.
+      // removedLeading was [C throat, SP2] — reversed gives [SP2, C throat].
+      const trailPts = removedLeading.reverse();
+
+      // Extend past the last trail point (the fromTrack throat) into the siding
+      const fromDef = Tracks.definitions[fromTrack];
+      const fromFillDir = new THREE.Vector3(fromDef.dirX, 0, fromDef.dirZ);
+      const lastTrailPt = trailPts[trailPts.length - 1];
+      trailPts.push(lastTrailPt.clone().add(fromFillDir.clone().multiplyScalar(maxTrail)));
+
+      // Compute negative cumulative distances and prepend to path
+      let prevPt = waypoints[0]; // loco position
+      let cumDist = 0;
+      const trailEntries = [];
+      for (const pt of trailPts) {
+        cumDist -= prevPt.distanceTo(pt);
+        trailEntries.push({ point: pt.clone(), dist: cumDist });
+        prevPt = pt;
+      }
+      // Prepend so path is sorted by distance (most negative first).
+      // Unshifting in forward order builds the correct sequence because each
+      // unshift pushes the previous entry rightward.
+      for (let i = 0; i < trailEntries.length; i++) {
+        path.unshift(trailEntries[i]);
+      }
+    } else {
+      // Simple straight-line backward extension
+      const firstDir = waypoints[1].clone().sub(waypoints[0]).normalize();
+      const extBefore = waypoints[0].clone().sub(firstDir.clone().multiplyScalar(maxTrail));
+      path.unshift({ point: extBefore, dist: -maxTrail });
+    }
 
     const lastIdx = waypoints.length - 1;
     const lastDir = waypoints[lastIdx].clone().sub(waypoints[lastIdx - 1]).normalize();
     const extAfter = waypoints[lastIdx].clone().add(lastDir.clone().multiplyScalar(maxTrail));
-    path.push({ point: extAfter, dist: totalDist + maxTrail });
+    path.push({ point: extAfter, dist: pathEndDist + maxTrail });
 
     const numSegments = waypoints.length - 1;
 

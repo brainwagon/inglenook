@@ -38,30 +38,22 @@ body {
   z-index: 5;
 }
 
-/* Settings Gear */
+/* Settings Button */
 #btn-settings {
-  position: absolute;
-  top: 100px;
-  right: 25px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #ffd700;
+  background: #546e7a;
+  color: #fff;
   border: none;
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  font-size: 28px;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-family: 'Rye', cursive;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  transition: transform 0.3s ease, background 0.2s;
-  pointer-events: auto;
+  transition: background 0.2s, transform 0.1s;
 }
 
 #btn-settings:hover {
-  background: rgba(0, 0, 0, 0.8);
-  transform: rotate(45deg);
+  background: #78909c;
+  transform: translateY(-1px);
 }
 
 /* Settings Menu */
@@ -188,9 +180,49 @@ body {
 #status-line {
   background: rgba(0, 0, 0, 0.6);
   border-radius: 8px;
-  padding: 6px 14px;
+  padding: 8px 14px;
   color: #ccc;
   font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-label {
+  color: #ffd700;
+  font-size: 11px;
+  min-width: 58px;
+  text-align: right;
+}
+
+.status-chips {
+  display: flex;
+  gap: 4px;
+}
+
+.status-chip {
+  width: 26px;
+  height: 18px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+.status-empty {
+  color: #666;
+  font-size: 11px;
+  font-style: italic;
 }
 
 /* Controls */
@@ -212,6 +244,11 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+#move-buttons, #action-buttons {
+  padding-right: 16px;
+  border-right: 1px solid rgba(255, 215, 0, 0.3);
 }
 
 .control-label {
