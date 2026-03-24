@@ -4,8 +4,9 @@ const Animation = (() => {
   let activeAnimation = null;
   let locked = false;
 
-  // X coordinate of the tunnel mouth — meshes past this disappear during victory
-  const tunnelMouthX = Tracks.getTrackEnd('A').x;
+  // X coordinate of the tunnel mouth — meshes past this disappear during victory.
+  // We offset it by 1.6 units (one car length) to allow entities to fully enter the tunnel.
+  const tunnelMouthX = Tracks.getTrackEnd('A').x - 1.6;
 
   function isLocked() {
     return locked;

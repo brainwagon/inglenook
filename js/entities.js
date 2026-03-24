@@ -545,8 +545,9 @@ const Entities = (() => {
       // Far left of track A (around the tunnel hill)
       { x: -20, z: -4 }, { x: -22, z: 2 }, { x: -20, z: 6 }, { x: -24, z: -2 },
       { x: -25, z: 4 }, { x: -23, z: 8 }, { x: -18, z: 9 },
-      // Hillside trees (elevated)
-      { x: -17, z: -4, y: 3.5 }, { x: -17, z: 4, y: 3.5 }, { x: -18, z: 0, y: 5.5 },
+      // Hillside trees (elevated and "planted" 0.5m into the 7.6-radius embankment)
+      { x: -17, z: -4, y: 5.96 }, { x: -17, z: 4, y: 5.96 }, { x: -18, z: 0, y: 7.1 },
+      { x: -19, z: -2.5, y: 6.67 }, { x: -19, z: 2.5, y: 6.67 },
       // Far right of tracks B/C
       { x: 23, z: -1 }, { x: 24, z: 3 }, { x: 22, z: 6 }, { x: 26, z: 1 },
       { x: 27, z: 5 }, { x: 25, z: -3 },
