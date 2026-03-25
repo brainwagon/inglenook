@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Inglewood Sidings</title>
+  <title>Inglenook Sidings</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rye&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
   <div id="container">
     <canvas id="gameCanvas"></canvas>
 
-    <div id="title-overlay">Inglewood Sidings</div>
+    <div id="title-overlay">Inglenook Sidings</div>
 
     <!-- Settings Menu -->
     <div id="settings-menu" class="hidden">
@@ -24,6 +24,26 @@
         </label>
       </div>
       <button id="btn-close-settings">Close</button>
+    </div>
+
+    <!-- Set Target Modal -->
+    <div id="target-modal" class="hidden">
+      <div id="target-modal-box">
+        <h3>Set Target</h3>
+        <p>Enter 5 unique car numbers (1–8)</p>
+        <div id="target-input-row">
+          <input type="text" id="target-input-1" class="target-input" maxlength="1">
+          <input type="text" id="target-input-2" class="target-input" maxlength="1">
+          <input type="text" id="target-input-3" class="target-input" maxlength="1">
+          <input type="text" id="target-input-4" class="target-input" maxlength="1">
+          <input type="text" id="target-input-5" class="target-input" maxlength="1">
+        </div>
+        <div id="target-modal-error" class="hidden"></div>
+        <div id="target-modal-buttons">
+          <button id="btn-target-ok">OK</button>
+          <button id="btn-target-cancel">Cancel</button>
+        </div>
+      </div>
     </div>
 
     <!-- HUD Overlay -->
@@ -51,8 +71,10 @@
         <button id="btn-couple">Couple</button>
         <button id="btn-decouple">Decouple</button>
       </div>
+      <button id="btn-solve">Solve</button>
       <button id="btn-retry">Retry</button>
       <button id="btn-reset">New Game</button>
+      <button id="btn-set-target">Set Target</button>
       <button id="btn-settings">Settings</button>
     </div>
 
@@ -60,7 +82,10 @@
     <div id="victory" class="hidden">
       <div id="victory-text">Victory!</div>
       <div id="victory-moves"></div>
-      <button id="btn-play-again">Play Again</button>
+      <div id="victory-buttons">
+        <button id="btn-replay-level">Replay Level</button>
+        <button id="btn-new-game">New Game</button>
+      </div>
     </div>
 
     <!-- Error toast -->
@@ -72,6 +97,7 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
 
   <!-- Game scripts in dependency order -->
+  <script src="solver.js"></script>
   <script src="js/config.js"></script>
   <script src="js/tracks.js"></script>
   <script src="js/scene.js"></script>
