@@ -19,7 +19,7 @@
   const clock = new THREE.Clock();
   function animate() {
     requestAnimationFrame(animate);
-    const delta = clock.getDelta();
+    const delta = Math.min(clock.getDelta(), 0.1);
     Animation.update(delta);
     SceneManager.render();
   }

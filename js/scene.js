@@ -182,10 +182,10 @@ const SceneManager = (() => {
     canvas.height = res;
     const ctx = canvas.getContext('2d');
 
+    const groundDepth = CONFIG.groundSize * 0.6;
     const worldToCanvas = (x, z) => {
-      // Map world coords [-30, 30] to canvas coords [0, 1024]
       const u = ((x + CONFIG.groundSize / 2) / CONFIG.groundSize) * res;
-      const v = ((z + CONFIG.groundSize / 2) / CONFIG.groundSize) * res;
+      const v = ((z + groundDepth / 2) / groundDepth) * res;
       return { u, v };
     };
 
