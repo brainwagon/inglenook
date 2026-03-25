@@ -212,6 +212,85 @@ body {
 }
 #btn-set-target:hover { background: #00796b; }
 
+#btn-instructions {
+  background: #5c6bc0;
+  color: #fff;
+}
+#btn-instructions:hover { background: #3f51b5; }
+
+/* Instructions Modal */
+#instructions-modal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 100;
+}
+
+#instructions-box {
+  background: #1a1a2e;
+  border: 2px solid #ffd700;
+  border-radius: 16px;
+  padding: 36px 44px;
+  max-width: 520px;
+  font-family: 'Rye', cursive;
+  color: #ddd;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+#instructions-box h3 {
+  color: #ffd700;
+  font-size: 28px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+#instructions-box p {
+  margin-bottom: 12px;
+}
+
+#instructions-box ul {
+  margin: 0 0 14px 20px;
+}
+
+#instructions-box li {
+  margin-bottom: 6px;
+}
+
+#instructions-box .instructions-link {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+#instructions-box .instructions-link a {
+  color: #64b5f6;
+  text-decoration: none;
+}
+
+#instructions-box .instructions-link a:hover {
+  text-decoration: underline;
+}
+
+#btn-close-instructions {
+  display: block;
+  margin: 0 auto;
+  background: #ffd700;
+  color: #1a1a2e;
+  border: none;
+  padding: 10px 28px;
+  border-radius: 6px;
+  font-family: 'Rye', cursive;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#btn-close-instructions:hover {
+  background: #ffca28;
+}
+
 /* HUD */
 #hud {
   position: absolute;

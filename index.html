@@ -80,7 +80,26 @@
       <button id="btn-retry">Retry</button>
       <button id="btn-reset">New Game</button>
       <button id="btn-set-target">Set Target</button>
+      <button id="btn-instructions">Instructions</button>
       <button id="btn-settings">Settings</button>
+    </div>
+
+    <!-- Instructions Modal -->
+    <div id="instructions-modal" class="hidden">
+      <div id="instructions-box">
+        <h3>How to Play</h3>
+        <p><strong>Inglenook Sidings</strong> is a classic railway shunting puzzle. Your goal is to assemble a specific train by moving cars between sidings.</p>
+        <ul>
+          <li><strong>Move to:</strong> Use the A/B/C/D buttons to drive the locomotive (and any coupled cars) to a siding.</li>
+          <li><strong>Couple:</strong> Pick up the nearest car on the current siding.</li>
+          <li><strong>Decouple:</strong> Drop all coupled cars onto the current siding.</li>
+          <li>The locomotive can only travel between siding A and the other sidings (B, C, D) &mdash; not directly between B, C, and D.</li>
+          <li>Each siding has limited capacity. You cannot move if there isn&rsquo;t enough room.</li>
+        </ul>
+        <p>Assemble the target cars (shown at the top-left) on siding A in the correct order to win. Try to do it in as few moves as possible!</p>
+        <p class="instructions-link"><a href="https://en.wikipedia.org/wiki/Inglenook_Sidings" target="_blank" rel="noopener">Learn more on Wikipedia</a></p>
+        <button id="btn-close-instructions">Got it</button>
+      </div>
     </div>
 
     <!-- Victory overlay -->
