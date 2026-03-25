@@ -2,7 +2,7 @@
 
 const HUD = (() => {
   let targetCarsEl, moveCounterEl, statusLineEl, victoryEl, victoryMovesEl, errorToastEl;
-  let settingsMenuEl, checkSignsEl;
+  let settingsMenuEl, checkSignsEl, checkConductorEl;
   let targetModalEl, targetModalErrorEl;
   let targetInputs;
   let errorTimeout = null;
@@ -59,6 +59,11 @@ const HUD = (() => {
 
     checkSignsEl.addEventListener('change', (e) => {
       Entities.setSignsVisible(e.target.checked);
+    });
+
+    checkConductorEl = document.getElementById('check-conductor');
+    checkConductorEl.addEventListener('change', (e) => {
+      SceneManager.setConductorView(e.target.checked);
     });
 
     renderTarget();

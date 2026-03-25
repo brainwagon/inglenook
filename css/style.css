@@ -484,6 +484,31 @@ body {
   z-index: 5;
 }
 
+/* Conductor View PIP */
+#conductor-pip {
+  position: absolute;
+  bottom: 80px;
+  left: 20px;
+  width: 420px;
+  height: 315px;
+  border: 2px solid #ffd700;
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 4;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+}
+
+#conductor-pip::after {
+  content: 'Conductor View';
+  position: absolute;
+  top: -20px;
+  left: 6px;
+  font-family: 'Rye', cursive;
+  font-size: 11px;
+  color: #ffd700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
 .hidden {
   display: none !important;
 }

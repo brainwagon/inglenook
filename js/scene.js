@@ -2,6 +2,12 @@
 
 const SceneManager = (() => {
   let scene, camera, renderer, controls;
+  let conductorCamera;
+  let conductorEnabled = false;
+  let conductorPipEl;
+  // Smoothed conductor camera look direction
+  const conductorDir = new THREE.Vector3();
+  let conductorInitialized = false;
 
   function init() {
     const canvas = document.getElementById('gameCanvas');
@@ -81,6 +87,10 @@ const SceneManager = (() => {
     ground.position.y = -0.05;
     ground.receiveShadow = true;
     scene.add(ground);
+
+    // Conductor view camera (wide FOV, positioned at loco cab)
+    conductorCamera = new THREE.PerspectiveCamera(70, 4 / 3, 0.1, 200);
+    conductorPipEl = document.getElementById('conductor-pip');
 
     // Handle resize
     window.addEventListener('resize', onResize);
@@ -259,10 +269,68 @@ const SceneManager = (() => {
     renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
-  function render() {
+  function render(delta) {
     controls.update();
     renderer.render(scene, camera);
+
+    if (conductorEnabled) {
+      const loco = Entities.getLocoMesh();
+      if (loco) {
+        // Compute target position and look-at from loco orientation
+        const offset = new THREE.Vector3(-0.8, 2.0, 0);
+        offset.applyQuaternion(loco.quaternion);
+        const targetPos = loco.position.clone().add(offset);
+
+        const targetDir = new THREE.Vector3(2, -0.5, 0);
+        targetDir.applyQuaternion(loco.quaternion).normalize();
+
+        // Snap direction on first frame, then smooth-lerp
+        if (!conductorInitialized) {
+          conductorDir.copy(targetDir);
+          conductorInitialized = true;
+        } else {
+          const smoothing = 1 - Math.exp(-4 * (delta || 0.016));
+          conductorDir.lerp(targetDir, smoothing).normalize();
+        }
+
+        conductorCamera.position.copy(targetPos);
+        conductorCamera.lookAt(
+          targetPos.x + conductorDir.x,
+          targetPos.y + conductorDir.y,
+          targetPos.z + conductorDir.z
+        );
+
+        // PIP dimensions matching the CSS overlay
+        const pipW = 420;
+        const pipH = 315;
+        const pipX = 20;
+        // CSS bottom:80px → WebGL Y from bottom
+        const pipY = 80;
+
+        renderer.setScissorTest(true);
+        renderer.setScissor(pipX, pipY, pipW, pipH);
+        renderer.setViewport(pipX, pipY, pipW, pipH);
+        conductorCamera.aspect = pipW / pipH;
+        conductorCamera.updateProjectionMatrix();
+        renderer.render(scene, conductorCamera);
+
+        renderer.setScissorTest(false);
+        renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+      }
+    }
   }
 
-  return { init, render, getScene: () => scene, getCamera: () => camera, getRenderer: () => renderer };
+  function setConductorView(enabled) {
+    conductorEnabled = enabled;
+    conductorInitialized = false; // snap to current loco position on enable
+    if (conductorPipEl) {
+      conductorPipEl.classList.toggle('hidden', !enabled);
+    }
+  }
+
+  return {
+    init, render,
+    getScene: () => scene, getCamera: () => camera, getRenderer: () => renderer,
+    setConductorView,
+  };
 })();

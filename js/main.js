@@ -21,7 +21,7 @@
     requestAnimationFrame(animate);
     const delta = Math.min(clock.getDelta(), 0.1);
     Animation.update(delta);
-    SceneManager.render();
+    SceneManager.render(delta);
   }
   animate();
 })();
