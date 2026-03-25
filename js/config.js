@@ -34,7 +34,7 @@ const CONFIG = {
   moveSpeed: 1.5, // seconds per segment
 
   // Ground
-  groundSize: 60,
+  groundSize: 70,
   groundColor: 0x4a4a4a,
 };
 
