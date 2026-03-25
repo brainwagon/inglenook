@@ -31,7 +31,7 @@ const CONFIG = {
   cameraLookAt: { x: 4, y: 0, z: 1.5 },
 
   // Animation
-  moveSpeed: 1.5, // seconds per segment
+  moveSpeed: 1.0, // seconds per segment
 
   // Ground
   groundSize: 75,
