@@ -3,6 +3,7 @@
 const Animation = (() => {
   let activeAnimation = null;
   let locked = false;
+  let speedMultiplier = 1;
 
   // X coordinate of the tunnel mouth — meshes past this disappear during victory.
   // We offset it by 1.6 units (one car length) to allow entities to fully enter the tunnel.
@@ -12,8 +13,9 @@ const Animation = (() => {
     return locked;
   }
 
-  // Animate loco + coupled cars along a route of waypoints
-  function animateMove(fromTrack, toTrack, onComplete) {
+  // Animate loco + coupled cars along a route of waypoints.
+  // opts.skipSnap: if true, don't call positionAllEntities on completion.
+  function animateMove(fromTrack, toTrack, onComplete, opts) {
     locked = true;
 
     const locoMesh = Entities.getLocoMesh();
@@ -138,9 +140,9 @@ const Animation = (() => {
       movingRight,
       startRotations,
       elapsed: 0,
-      duration: numSegments * CONFIG.moveSpeed,
+      duration: numSegments * CONFIG.moveSpeed / speedMultiplier,
       onComplete: () => {
-        Entities.positionAllEntities();
+        if (!(opts && opts.skipSnap)) Entities.positionAllEntities();
         locked = false;
         if (onComplete) onComplete();
       },
@@ -262,6 +264,21 @@ const Animation = (() => {
     const trackZ = Tracks.definitions.A.throatZ;
     waypoints.push(new THREE.Vector3(offScreenX, 0, trackZ));
 
+    // Remove leading waypoints that the loco has already passed (e.g. when
+    // sitting on the diagonal before the siding throat due to overflow).
+    // Same logic as animateMove — without this, the backward extension goes
+    // along the diagonal toward the switches instead of into the siding.
+    const removedLeading = [];
+    while (waypoints.length >= 3) {
+      const seg1 = waypoints[1].clone().sub(waypoints[0]);
+      const seg2 = waypoints[2].clone().sub(waypoints[1]);
+      if (seg1.dot(seg2) < 0) {
+        removedLeading.push(waypoints.splice(1, 1)[0]);
+      } else {
+        break;
+      }
+    }
+
     // Build polyline path with cumulative distances
     const path = [{ point: waypoints[0].clone(), dist: 0 }];
     let totalDist = 0;
@@ -273,12 +290,37 @@ const Animation = (() => {
     // Moving left (off-screen)
     const movingRight = false;
 
-    // Extend path at both ends for car trailing
+    // Extend path beyond both ends so trailing cars always have valid positions
     const maxTrail = allMeshes.length * CONFIG.slotSpacing + 2;
 
-    const firstDir = waypoints[1].clone().sub(waypoints[0]).normalize();
-    const extBefore = waypoints[0].clone().sub(firstDir.clone().multiplyScalar(maxTrail));
-    path.unshift({ point: extBefore, dist: -maxTrail });
+    if (removedLeading.length > 0) {
+      // Build backward extension along the physical track: loco → throat → siding.
+      const trailPts = removedLeading.reverse();
+
+      // Extend past the last trail point (the siding throat) into the siding
+      const def = Tracks.definitions[currentTrack];
+      const fillDir = new THREE.Vector3(def.dirX, 0, def.dirZ);
+      const lastTrailPt = trailPts[trailPts.length - 1];
+      trailPts.push(lastTrailPt.clone().add(fillDir.clone().multiplyScalar(maxTrail)));
+
+      // Compute negative cumulative distances and prepend to path
+      let prevPt = waypoints[0]; // loco position
+      let cumDist = 0;
+      const trailEntries = [];
+      for (const pt of trailPts) {
+        cumDist -= prevPt.distanceTo(pt);
+        trailEntries.push({ point: pt.clone(), dist: cumDist });
+        prevPt = pt;
+      }
+      for (let i = 0; i < trailEntries.length; i++) {
+        path.unshift(trailEntries[i]);
+      }
+    } else {
+      // Simple straight-line backward extension
+      const firstDir = waypoints[1].clone().sub(waypoints[0]).normalize();
+      const extBefore = waypoints[0].clone().sub(firstDir.clone().multiplyScalar(maxTrail));
+      path.unshift({ point: extBefore, dist: -maxTrail });
+    }
 
     const lastIdx = waypoints.length - 1;
     const lastDir = waypoints[lastIdx].clone().sub(waypoints[lastIdx - 1]).normalize();
@@ -325,5 +367,7 @@ const Animation = (() => {
     return t * t * (3 - 2 * t);
   }
 
-  return { update, animateMove, animateVictoryDriveOff, isLocked };
+  function setSpeedMultiplier(m) { speedMultiplier = m; }
+
+  return { update, animateMove, animateVictoryDriveOff, isLocked, setSpeedMultiplier };
 })();
