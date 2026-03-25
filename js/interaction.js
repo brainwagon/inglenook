@@ -26,6 +26,7 @@ const Interaction = (() => {
     // Action buttons
     document.getElementById('btn-couple').addEventListener('click', handleCouple);
     document.getElementById('btn-decouple').addEventListener('click', handleDecouple);
+    document.getElementById('btn-solve').addEventListener('click', handleSolve);
     document.getElementById('btn-retry').addEventListener('click', () => HUD.retryGame());
     document.getElementById('btn-reset').addEventListener('click', () => HUD.resetGame());
   }
@@ -105,14 +106,18 @@ const Interaction = (() => {
       HUD.showError(result.reason);
       return;
     }
-    Entities.positionAllEntities();
-    HUD.updateStatus();
 
-    // Check win after coupling
+    // Check win BEFORE repositioning — if it's a win, skip the snap
+    // and let the victory animation drive off from current mesh positions.
     if (GameState.checkWin()) {
+      HUD.updateStatus();
       HUD.showVictory();
       Animation.animateVictoryDriveOff();
+      return;
     }
+
+    Entities.positionAllEntities();
+    HUD.updateStatus();
   }
 
   function handleDecouple() {
@@ -218,6 +223,108 @@ const Interaction = (() => {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  }
+
+  let solving = false;
+
+  function handleSolve() {
+    if (Animation.isLocked() || GameState.state.won || solving) return;
+
+    // Map current game state to solver format
+    const st = GameState.state;
+    if (st.locoTrack !== 'A' || st.coupled.length > 0) {
+      HUD.showError('Move loco to A and decouple first');
+      return;
+    }
+
+    const tracks = {
+      A: [],
+      B: [...st.sidings.B],
+      C: [...st.sidings.C],
+      D: [...st.sidings.D],
+    };
+
+    const targetStr = st.target.join('');
+
+    // Lock UI and show status before running the solver, which may block
+    // the main thread for a noticeable time.  The setTimeout lets the
+    // browser paint the status message before the solver starts.
+    solving = true;
+    HUD.showError('Solving…');
+    setTimeout(() => {
+      const solution = solvePuzzle(targetStr, tracks);
+
+      if (!solution || solution.length <= 1) {
+        solving = false;
+        HUD.showError('No solution found!');
+        return;
+      }
+
+      Animation.setSpeedMultiplier(2);
+      playSolution(solution, 1);
+    }, 0);
+  }
+
+  function playSolution(moves, index) {
+    if (index >= moves.length) {
+      solving = false;
+      Animation.setSpeedMultiplier(1);
+
+      // The solver may finish on a siding with target cars decoupled.
+      // Couple them logically (no repositioning — meshes are already correct).
+      if (GameState.state.locoTrack !== 'A') {
+        while (GameState.state.sidings[GameState.state.locoTrack].length > 0
+            && GameState.state.coupled.length < CONFIG.targetSize) {
+          GameState.coupleOne();
+        }
+      }
+      startVictory();
+      return;
+    }
+
+    const move = moves[index];
+    const isLastMove = index === moves.length - 1;
+
+    if (move.locomotivePos !== 'A') {
+      // Push: move to siding, then decouple
+      animatedMove(move.locomotivePos, () => {
+        if (GameState.state.coupled.length > 0) {
+          GameState.decoupleAll();
+          if (!isLastMove) Entities.positionAllEntities();
+          HUD.updateStatus();
+        }
+        playSolution(moves, index + 1);
+      }, isLastMove);
+    } else {
+      // Pull: couple k cars, then move to A
+      for (let j = 0; j < move.pulledCount; j++) {
+        GameState.coupleOne();
+      }
+      Entities.positionAllEntities();
+      HUD.updateStatus();
+      animatedMove('A', () => {
+        playSolution(moves, index + 1);
+      }, isLastMove);
+    }
+  }
+
+  function startVictory() {
+    GameState.state.won = true;
+    HUD.updateStatus();
+    HUD.showVictory();
+    Animation.animateVictoryDriveOff();
+  }
+
+  function animatedMove(toTrack, onDone, skipSnap) {
+    const fromTrack = GameState.state.locoTrack;
+    GameState.executeMove(toTrack);
+    HUD.updateMoves();
+    HUD.updateStatus();
+    updateMoveButtons();
+    Animation.animateMove(fromTrack, toTrack, () => {
+      HUD.updateStatus();
+      if (onDone) onDone();
+    }, skipSnap ? { skipSnap: true } : undefined);
   }
 
   return { init, updateMoveButtons };
